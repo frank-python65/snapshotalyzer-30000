@@ -1,5 +1,6 @@
 #import sys
 import boto3
+import botocore
 import click
 
 session = boto3.Session(profile_name='shotty')
@@ -52,8 +53,10 @@ def snapshots():
 @snapshots.command('list')
 @click.option('--project', default=None,
     help="Only instances for project (tag project:<name>)")
+@click.option('--all', 'list_all', default=False, is_flag=True,
+    help="List all snapshots for each volume, not just most recent one")
 
-def list_snapshots(project):
+def list_snapshots(project, list_all):
     "List EC2 snapshots"
 
     instances = filter_instances(project)
@@ -69,6 +72,7 @@ def list_snapshots(project):
                  s.progress,
                  s.start_time.strftime("%c")
                  )))
+                 if s.state == 'completed' and not list_all: break
     return
 
 ### insatnces functions
@@ -107,10 +111,13 @@ def stop_insatnces(project):
     instances = filter_instances(project)
 
     for i in instances:
-#        tags = {t['Key'] : t['Value'] for t in (i.tags or []) }
-#        project = tags.get('Project', '<no project>')
         print ("stopping {0} - {1}...".format(project,i.id))
-        i.stop()
+        # add error handling
+        try:
+            i.stop()
+        except botocore.exceptions.ClientError as e:
+            print ("Cloud not stop {0} . Error:".format(i.id) + str(e))
+            continue
     return
 
 @instances.command('start')
@@ -123,10 +130,12 @@ def start_insatnces(project):
     instances = filter_instances(project)
 
     for i in instances:
-#        tags = {t['Key'] : t['Value'] for t in (i.tags or []) }
-#        project = tags.get('Project', '<no project>')
         print ("starting {0} - {1}...".format(project,i.id))
-        i.start()
+        try:
+            i.start()
+        except botocore.exceptions.ClientError as e:
+            print ("Cloud not start {0} . Error:".format(i.id) + str(e))
+            continue
 
     return
 
