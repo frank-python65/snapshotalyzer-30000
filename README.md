@@ -26,3 +26,7 @@ shotty uses the configiuration created via AWS cli etc.
 ### --help
   - Top command has help for all Commands
   - Each command has its help
+
+## make wheel file for Distribution
+  - setup.py
+  - use setup.py to create package wheel file (.whl)
